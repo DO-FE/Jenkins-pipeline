@@ -11,6 +11,7 @@ pipeline{
     environment {
         gitRepoProjectBuild="https://github.com/DO-FE/ECommerce-Website-Shop.git"
         Branch="production"
+        ProjectName="eShop"
 
         CredentialID_Git="credential_axyres_github"
 
@@ -35,7 +36,7 @@ pipeline{
             steps{
                 sh"""
                     cd ${WORKSPACE}/
-                    echo "${artifactId}" > ${WORKSPACE}/commit.txt
+                    echo "${ProjectName}" > ${WORKSPACE}/commit.txt
                     /bin/git log -1 --pretty=format:'%h, %an, %ar, %aD, %s' >> ${WORKSPACE}/commit.txt
 					echo "\n############################################" >> ${WORKSPACE}/commit.txt
                 """
@@ -59,7 +60,7 @@ pipeline{
             echo 'I success'
             script {
                 def commitMsg = readFile "${WORKSPACE}/commit.txt"
-                telegramSend (message: """[BUILD SUCCESS] - PROJECT: eShop - BRANCH: $Branch - VERSION: $buildVersion - COMMIT MESSAGE: $commitMsg""", chatId: "${ChatID_Telegram}")
+                telegramSend (message: """[BUILD SUCCESS] - PROJECT: $ProjectName - BRANCH: $Branch - VERSION: $buildVersion - COMMIT MESSAGE: $commitMsg""", chatId: "${ChatID_Telegram}")
             }
             deleteDir()
         }
@@ -67,7 +68,7 @@ pipeline{
             echo 'I failure'
             script{
                 def commitMsg = readFile "${WORKSPACE}/commit.txt"
-                telegramSend (message: """[BUILD FAILED] - PROJECT: eShop - BRANCH: $Branch - VERSION: $buildVersion - COMMIT MESSAGE: $commitMsg""", chatId: "${ChatID_Telegram}")
+                telegramSend (message: """[BUILD FAILED] - PROJECT: $ProjectName - BRANCH: $Branch - VERSION: $buildVersion - COMMIT MESSAGE: $commitMsg""", chatId: "${ChatID_Telegram}")
             }
             deleteDir()
         }
