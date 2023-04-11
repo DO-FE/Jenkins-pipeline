@@ -1,0 +1,78 @@
+pipeline{
+    agent{
+        docker {
+            image 'axyres/dockercentos:1.0'
+            args '--user=0 -v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '8', artifactNumToKeepStr: '8', daysToKeepStr: '7', artifactDaysToKeepStr: '7'))
+    }
+    environment {
+        gitRepoProjectBuild="https://github.com/DO-FE/ECommerce-Website-Shop.git"
+        Branch="production"
+
+        CredentialID_Git="credential_axyres_github"
+
+        ChatID_Telegram="5595929242"
+    }
+    stages{
+        stage('Stage 1 Getting build number'){
+            steps{
+                script{
+                    def now = new Date()
+					buildVersion =  now.format("yyyy.MM.dd.HHmm", TimeZone.getTimeZone('ICT'))
+					currentBuild.displayName = "${buildVersion}"
+                }
+            }
+        }
+        stage('Stage 2 Checkout Code'){
+            steps{
+                checkout([$class: 'GitSCM', branches: [[name: "$Branch"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CheckoutOption', timeout: 90], [$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false, timeout: 90], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', timeout: 90, trackingSubmodules: true]], gitTool: 'Default', submoduleCfg: [], userRemoteConfigs: [[credentialsId: "$CredentialID_Git", url: "$gitRepoProjectBuild"]]])
+            }
+        }
+        stage('Stage 3 Get commit harsh'){
+            steps{
+                sh"""
+                    cd ${WORKSPACE}/
+                    echo "${artifactId}" > ${WORKSPACE}/commit.txt
+                    /bin/git log -1 --pretty=format:'%h, %an, %ar, %aD, %s' >> ${WORKSPACE}/commit.txt
+					echo "\n############################################" >> ${WORKSPACE}/commit.txt
+                """
+            }
+        }
+        stage('Stage 4 Build Code'){
+            steps{
+                sh"""
+                    cd ${WORKSPACE}/src
+                    docker-compose build
+                    docker-compose up
+                """
+            }
+        }
+    }
+    post{
+        always{
+            echo 'One way or another, I have finished'
+        }
+        success {
+            echo 'I success'
+            script {
+                def commitMsg = readFile "${WORKSPACE}/commit.txt"
+                telegramSend (message: """[BUILD SUCCESS] - PROJECT: eShop - BRANCH: $Branch - VERSION: $buildVersion - COMMIT MESSAGE: $commitMsg""", chatId: "${ChatID_Telegram}")
+            }
+            deleteDir()
+        }
+        failure {
+            echo 'I failure'
+            script{
+                def commitMsg = readFile "${WORKSPACE}/commit.txt"
+                telegramSend (message: """[BUILD FAILED] - PROJECT: eShop - BRANCH: $Branch - VERSION: $buildVersion - COMMIT MESSAGE: $commitMsg""", chatId: "${ChatID_Telegram}")
+            }
+            deleteDir()
+        }
+    }
+}
+String determineRepoName() {
+    return scm.getUserRemoteConfigs()[0].getUrl().tokenize('/').last().split("\\.")[0]
+}
