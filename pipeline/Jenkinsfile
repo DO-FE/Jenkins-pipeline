@@ -35,6 +35,7 @@ pipeline{
         stage('Stage 3 Get commit harsh'){
             steps{
                 sh"""
+                    yum install git zip unzip -y
                     cd ${WORKSPACE}/
                     echo "${ProjectName}" > ${WORKSPACE}/commit.txt
                     /bin/git log -1 --pretty=format:'%h, %an, %ar, %aD, %s' >> ${WORKSPACE}/commit.txt
@@ -46,6 +47,7 @@ pipeline{
             steps{
                 sh"""
                     cd ${WORKSPACE}/src
+                    ls -l
                     docker-compose build
                     docker-compose up
                 """
