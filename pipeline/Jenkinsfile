@@ -47,8 +47,14 @@ pipeline{
             steps{
                 sh"""
                     cd ${WORKSPACE}/src
-                    ls -l
                     docker-compose build
+                """
+            }
+        }
+        stage('Stage 5 Deploy Code'){
+            steps{
+                sh"""
+                    cd ${WORKSPACE}/src
                     docker-compose up
                 """
             }
